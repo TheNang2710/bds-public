@@ -93,3 +93,9 @@ After updating the tokenListTxs.json file with the desired token addresses, you 
 node wsTxsMul.js
 ```
 This command will initiate the WebSocket connection and subscribe to the transaction updates for all tokens listed in the tokenListTxs.json file.
+
+### Code for new pair listing websocket
+Simple input your API key into the 'new-pair-simple.js' file then run the below command
+```bash
+node new-pair-simple.js
+```
