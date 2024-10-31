@@ -135,7 +135,7 @@ python usage.py --o
 python usage.py --f <usage_in_millions>
 ```
 8. **Show Emails from Watchlist** <br>
-File watch-list.txt is at the same folder as usage.py file
+Create a `watch-list.txt`, paste email list in the line separate, and place it at the same folder as `usage.py` file.
 ```
 python usage.py --w
 ```
