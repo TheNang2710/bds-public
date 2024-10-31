@@ -29,16 +29,16 @@ def load_watch_list(file_path):
         print(f"Error: The file {file_path} does not exist.")
         sys.exit(1)
 
-def summarize_usage(api_df, ws_df, overage_df=None, start_rank=0, end_rank=0):
+def summarize_usage(api_df, ws_df, overage_df=None, start_rank=None, end_rank=None):
     # Summarize API usage
-    api_summary = api_df.groupby('email')['usage'].sum().reset_index().rename(columns={'usage': 'api-usage'})
-    ws_summary = ws_df.groupby('email')['cus'].sum().reset_index().rename(columns={'cus': 'ws-usage'})
+    api_summary = api_df.groupby('email')['usage'].sum().reset_index().rename(columns={'usage': 'API Usage'})
+    ws_summary = ws_df.groupby('email')['cus'].sum().reset_index().rename(columns={'cus': 'WS Usage'})
 
     # Merge API and WebSocket usage summaries
     summary = pd.merge(api_summary, ws_summary, on='email', how='outer').fillna(0)
 
     # Calculate total usage
-    summary['total-usage'] = summary['api-usage'] + summary['ws-usage']
+    summary['Total Usage'] = summary['API Usage'] + summary['WS Usage']
 
     # Sort by total usage unless overage_df is present
     if overage_df is not None:
@@ -46,24 +46,27 @@ def summarize_usage(api_df, ws_df, overage_df=None, start_rank=0, end_rank=0):
         summary = summary[summary['overage'] > 0]  # Only show emails with overage > 0
         summary = summary.sort_values(by='overage', ascending=False)
     else:
-        summary = summary.sort_values(by='total-usage', ascending=False)
+        summary = summary.sort_values(by='Total Usage', ascending=False)
 
-    # Apply rank filtering if specified
-    if start_rank > 0 or end_rank > 0:
-        start_rank = max(0, start_rank)
-        end_rank = end_rank or len(summary)  # If end_rank is not specified, show all
-        summary = summary.iloc[start_rank:end_rank]
+    # Apply ranking based on start and end rank parameters
+    if start_rank is None:
+        start_rank = 0
+    if end_rank is None or end_rank > len(summary):
+        end_rank = len(summary)
 
-    return summary.reset_index(drop=True)  # Reset index for consistent numbering
+    summary = summary.iloc[start_rank:end_rank].reset_index(drop=True)  # Reset index for consistent numbering
+    return summary
 
 def show_details(api_df, ws_df, email):
     print(f"\nDetailed usage for {email}:")
 
     # API endpoint usage
     api_usage = api_df[api_df['email'] == email].copy()
+    total_api_usage = api_usage['usage'].sum()
     if not api_usage.empty:
         api_usage_summary = api_usage.groupby('endpoint')['usage'].sum().reset_index().sort_values(by='usage', ascending=False)
         api_usage_summary['usage'] = api_usage_summary['usage'].map('{:,.0f}'.format)
+        print(f"\nAPI Total: {total_api_usage:,.0f}")
         print("\nAPI Usage by Endpoint:")
         print(api_usage_summary.to_string(index=False))
     else:
@@ -71,34 +74,56 @@ def show_details(api_df, ws_df, email):
 
     # WebSocket usage
     ws_usage = ws_df[ws_df['email'] == email].copy()
+    total_ws_usage = ws_usage['cus'].sum()
     if not ws_usage.empty:
         ws_usage_summary = ws_usage.groupby('type')['cus'].sum().reset_index().sort_values(by='cus', ascending=False)
         ws_usage_summary['cus'] = ws_usage_summary['cus'].map('{:,.2f}'.format)
+        print(f"\nWS Total: {total_ws_usage:,.0f}")
         print("\nWebSocket Usage by Type:")
         print(ws_usage_summary.to_string(index=False))
 
+        # Plot WebSocket usage by type
+        plt.figure(figsize=(10, 6))
+        for ws_type in ws_usage_summary['type'].unique():
+            ws_type_usage = ws_df.loc[(ws_df['email'] == email) & (ws_df['type'] == ws_type), :].copy()
+            ws_type_usage['date'] = pd.to_datetime(ws_type_usage['date'])  # Use .loc[] to avoid SettingWithCopyWarning
+            ws_type_usage_summary = ws_type_usage.groupby('date')['cus'].sum()
+            plt.plot(ws_type_usage_summary.index, ws_type_usage_summary.values, label=f'{ws_type}')
+
+            # Prepare the text for annotation
+            summary_text = f"{ws_type}: {ws_usage_summary[ws_usage_summary['type'] == ws_type]['cus'].values[0]} CUs"
+            plt.gcf().text(0.02, 0.02 + 0.03 * ws_usage_summary['type'].tolist().index(ws_type), summary_text, fontsize=9, color='black')
+
+        plt.title(f'WebSocket Usage for {email}')
+        plt.xlabel('Date')
+        plt.ylabel('WS Usage')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+    else:
+        print("\nNo WebSocket usage data available for this email.")
+
     # Show total combined usage
-    total_usage = api_usage['usage'].sum() + ws_usage['cus'].sum()
-    print(f"\nTotal Usage for {email}: {total_usage:,.0f}")
+    print(f"\nTotal Usage for {email}: {total_api_usage + total_ws_usage:,.0f}")
 
 def print_table_with_usage(df, show_overage=False):
     if show_overage:
         print(f"\n{'No':<5}{'Email':<40}{'API Usage':>20}{'WS Usage':>20}{'Total Usage':>20}{'Overage':>20}{'OverageCost':>20}")
         print("="*145)
         for i, row in df.iterrows():
-            print(f"{i + 1:<5}{row['email']:<40}{row['api-usage']:>20,.0f}{row['ws-usage']:>20,.0f}{row['total-usage']:>20,.0f}{row['overage']:>20,.0f}{row['overageCost']:>20,.2f}")
+            print(f"{i + 1:<5}{row['email']:<40}{row['API Usage']:>20,.0f}{row['WS Usage']:>20,.0f}{row['Total Usage']:>20,.0f}{row['overage']:>20,.0f}{row['overageCost']:>20,.2f}")
         print("="*145)
     else:
         print(f"\n{'No':<5}{'Email':<40}{'API Usage':>20}{'WS Usage':>20}{'Total Usage':>20}")
         print("="*90)
         for i, row in df.iterrows():
-            print(f"{i + 1:<5}{row['email']:<40}{row['api-usage']:>20,.0f}{row['ws-usage']:>20,.0f}{row['total-usage']:>20,.0f}")
+            print(f"{i + 1:<5}{row['email']:<40}{row['API Usage']:>20,.0f}{row['WS Usage']:>20,.0f}{row['Total Usage']:>20,.0f}")
         print("="*90)
 
 def main():
     parser = argparse.ArgumentParser(description='Process API, WebSocket, and Overage usage data.')
-    parser.add_argument('--s', type=int, default=0, help='Start rank for range query (default is 0)')
-    parser.add_argument('--e', type=int, default=0, help='End rank for range query (default is all)')
+    parser.add_argument('--s', type=int, help='Start rank for range query')
+    parser.add_argument('--e', type=int, help='End rank for range query')
     parser.add_argument('--f', type=int, default=0, help='Filter to show emails with total usage >= this value (in millions)')
     parser.add_argument('--m', type=str, help='Search for an email containing the given string')
     parser.add_argument('--o', action='store_true', help='Find overage details')
@@ -132,59 +157,40 @@ def main():
         overage_df['overage'] = pd.to_numeric(overage_df['overage'], errors='coerce').fillna(0)
         overage_df['overageCost'] = pd.to_numeric(overage_df['overageCost'], errors='coerce').fillna(0)
 
-    # Apply the filter for total usage if --f is specified
+    # Summarize usage
+    summary = summarize_usage(api_df, ws_df, overage_df)
+
+    # Apply usage filter if specified
     if args.f > 0:
-        usage_filter = args.f * 1_000_000  # Convert millions to the actual number
-        summary = summarize_usage(api_df, ws_df, overage_df)
-        summary = summary[summary['total-usage'] >= usage_filter]
-    else:
-        summary = summarize_usage(api_df, ws_df, overage_df, start_rank=args.s, end_rank=args.e)
+        usage_filter = args.f * 1_000_000
+        summary = summary[summary['Total Usage'] >= usage_filter]
 
+    # Filter by email substring if --m is specified
     if args.m:
-        # Search for emails that contain the provided string
-        matching_emails = summary[summary['email'].str.contains(args.m, case=False, na=False)]['email'].unique()
-        if len(matching_emails) > 0:
-            print("Emails matching your search:")
-            for i, email in enumerate(matching_emails):
-                print(f"{i + 1}: {email}")
-            choice = input("Enter the number corresponding to the email you want to select: ")
-            try:
-                selected_email = matching_emails[int(choice) - 1]
-            except (IndexError, ValueError):
-                print("Invalid selection. Exiting.")
-                sys.exit(1)
-            args.emails = [selected_email]
-        else:
-            print("No emails found matching your search.")
-            sys.exit(0)
+        summary = summary[summary['email'].str.contains(args.m, case=False, na=False)]
 
-    if args.w:
-        # Load watch list and filter the summary
-        emails = load_watch_list("./watch-list.txt")
-        summary = summary[summary['email'].isin(emails)]
-
+    # Filter by emails list if provided
     if args.emails:
-        summary = summarize_usage(api_df, ws_df, overage_df)
-        summary = summary[summary['email'].isin(args.emails)].reset_index(drop=True)
-        print_table_with_usage(summary)
+        summary = summary[summary['email'].isin(args.emails)]
 
-        # Allow selection for details
-        while True:
-            selected_number = input("\nEnter the number of the email to see the detailed summary, type 'y' to return to the menu, or 'n' to quit: ")
-            if selected_number.lower() == 'y':
-                break
-            elif selected_number.lower() == 'n':
-                sys.exit()
+    # Filter by watch list if --w is specified
+    if args.w:
+        emails_watchlist = load_watch_list("./watch-list.txt")
+        summary = summary[summary['email'].isin(emails_watchlist)]
 
-            if selected_number.isdigit():
-                selected_index = int(selected_number) - 1
-                if 0 <= selected_index < len(summary):
-                    selected_email = summary.iloc[selected_index]['email']
-                    show_details(api_df, ws_df, selected_email)
+    # Reset index for consistent ranking display from 1 to n
+    summary = summary.reset_index(drop=True)
 
-    else:
-        # Display summary of usage
-        print_table_with_usage(summary, show_overage=args.o)
+    # Display the filtered summary table
+    print_table_with_usage(summary, show_overage=args.o)
+    selected_number = input("\nEnter the number of the email to see the detailed summary, type 'y' to return to the menu, or 'n' to quit: ")
+
+    while selected_number.isdigit():
+        selected_index = int(selected_number) - 1
+        if 0 <= selected_index < len(summary):
+            selected_email = summary.iloc[selected_index]['email']
+            show_details(api_df, ws_df, selected_email)
+        selected_number = input("\nEnter another number, 'y' to return to the menu, or 'n' to quit: ")
 
 if __name__ == "__main__":
     main()
