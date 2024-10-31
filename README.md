@@ -1,7 +1,5 @@
 # bds-public
 
-# bds
-
 # Setting Up WebSocket Client for Token Subscription
 
 This guide will walk you through the steps needed to set up a WebSocket client for subscribing to token price updates. You will learn how to add an API key to the `.env` file and install the required packages.
@@ -110,11 +108,15 @@ Run the following commands in your terminal to use each option. Make sure `usage
    ```
 2. **Show Top N (Specify End Rank)**
 
-```python usage.py --e <end_rank>```
+```
+python usage.py --e <end_rank>
+```
 
 3. **Specify Start and End Rank**
 
-```python usage.py --s <start_rank> --e <end_rank>```
+```
+python usage.py --s <start_rank> --e <end_rank>
+```
 
 4. **Search Email by Keyword**
 ```
