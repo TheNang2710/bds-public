@@ -99,3 +99,42 @@ Simple input your API key into the 'new-pair-simple.js' file then run the below 
 ```bash
 node new-pair-simple.js
 ```
+
+# Usage Analysis Tool
+
+Run the following commands in your terminal to use each option. Make sure `usage.py` is in the appropriate directory.
+
+1. **Run All Summary**
+   ```
+   python usage.py
+   ```
+2. **Show Top N (Specify End Rank)**
+
+python usage.py --s 0 --e <end_rank>
+
+3. **Specify Start and End Rank**
+
+```python usage.py --s <start_rank> --e <end_rank>```
+
+4. **Search Email by Keyword**
+```
+python usage.py --m <email_keyword>
+```
+5. **Filter by Specific Emails**
+```
+python usage.py <email1> <email2> ...
+```
+6. **View Overage Details**
+```
+python usage.py --o
+```
+7. **Filter by Usage (in Millions)**
+```
+python usage.py --f <usage_in_millions>
+```
+8. **Show Emails from Watchlist**
+File watch-list.txt is at the same folder as usage.py file
+```
+python usage.py --w
+```
+Note: Replace placeholders (e.g., <end_rank>, <email_keyword>, <usage_in_millions>) with your specific input values as needed.
