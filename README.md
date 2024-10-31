@@ -110,7 +110,7 @@ Run the following commands in your terminal to use each option. Make sure `usage
    ```
 2. **Show Top N (Specify End Rank)**
 
-```python usage.py --s 0 --e <end_rank>```
+```python usage.py --e <end_rank>```
 
 3. **Specify Start and End Rank**
 
