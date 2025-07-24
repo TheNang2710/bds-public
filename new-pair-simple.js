@@ -4,7 +4,7 @@ const util = require("util");
 const client = new WebSocketClient();
 
 // Hardcoded API key
-const apiKey = 'YOUR API KEY HERE';
+const apiKey = 'API_KEY_HERE';
 
 // Construct the WebSocket URL
 const url = util.format('wss://public-api.birdeye.so/socket/%s?x-api-key=%s', 'solana', apiKey);
