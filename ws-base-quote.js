@@ -41,6 +41,11 @@ client.on('connect', function(connection) {
         console.log('WebSocket Connection Closed');
     });
 
+    connection.on('ping', function (_) {
+        console.log("Received ping from server");
+        connection.pong();
+    });
+
     connection.on('message', function(message) {
         if (message.type === 'utf8') {
             console.log("Received:", message.utf8Data);

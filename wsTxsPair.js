@@ -28,6 +28,11 @@ client.on('connect', function(connection) {
         console.error('Connection Error:', error.toString());
     });
 
+    connection.on('ping', function (_) {
+        console.log("Received ping from server");
+        connection.pong();
+    });
+
     connection.on('close', function() {
         console.log('WebSocket Connection Closed');
     });
