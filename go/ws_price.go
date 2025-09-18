@@ -21,6 +21,8 @@ type SubscriptionMessage struct {
 	} `json:"data"`
 }
 
+// Command run: BIRDEYE_API_KEY=XXXXXXXXXXXXXXXX go run ws_price.go
+
 func main() {
 	// Load API key from environment variables
 	apiKey := os.Getenv("BIRDEYE_API_KEY")
@@ -66,6 +68,11 @@ func main() {
 	subscriptionMsg.Data.ChartType = "1m"
 	subscriptionMsg.Data.Address = address
 	subscriptionMsg.Data.Currency = "usd"
+
+	conn.SetPingHandler(func(appData string) error {
+		log.Println("Received ping from server, start sending pong")
+		return conn.WriteMessage(websocket.PongMessage, []byte{})
+	})
 
 	// Send subscription message
 	err = conn.WriteJSON(subscriptionMsg)

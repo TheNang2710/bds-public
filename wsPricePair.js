@@ -23,8 +23,14 @@ client.on('connectFailed', function(error) {
     console.error('Connect Error:', error.toString());
 });
 
+
 client.on('connect', function(connection) {
     console.log('WebSocket Client Connected');
+
+    connection.on('ping', function (_) {
+        console.log("Received ping from server");
+        connection.pong();
+    });
 
     connection.on('error', function(error) {
         console.error('Connection Error:', error.toString());
